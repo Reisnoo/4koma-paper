@@ -2383,7 +2383,13 @@ dialog .chk input { width: 18px; height: 18px; accent-color: var(--accent); }
             var doc = source.pages ? source : await readPdf(source);
             var a = analyze(doc);
             if (a.chars < 200) throw new Error('本文のテキストを取り出せませんでした。スキャン画像のPDFは、文字認識(OCR)をかけてからお試しください。');
-            setStep(0, 'done', a.pages + 'ページ・' + a.chars.toLocaleString() + '字を取得');
+            /* 文字がほとんど取れないページ(画像の表・スキャンのページ)があれば、読めていないことを、先に知らせる */
+            var lowPages = [];
+            doc.pages.forEach(function (lines, pi) { if (lines.map(function (l) { return l.text; }).join('').replace(/\s/g, '').length < 40) lowPages.push(pi + 1); });
+            var lowNote = (lowPages.length && lowPages.length < doc.pages.length)
+                ? ' ／ p.' + lowPages.slice(0, 6).join('・') + (lowPages.length > 6 ? ' ほか' : '') + ' は文字がほとんど取れていません(画像の表・スキャンは読めません。原文を確認してください)'
+                : '';
+            setStep(0, 'done', a.pages + 'ページ・' + a.chars.toLocaleString() + '字を取得' + lowNote);
 
             setStep(1, 'run');
             var books = buildBooks(a), nums = extractFacts(a), usedAi = false;
